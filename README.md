@@ -60,6 +60,7 @@
       qa_archive.py             # 问答库管理(归档/检索/去重/更新)
       speak.py                  # TTS 合成 + 播放(macOS / edge-tts)
       speak.ps1                 # 离线兜底 TTS
+```
 
 ## 测试与质量保证 (Testing and Quality Assurance)
 
@@ -109,17 +110,6 @@ docker run --rm -v "$PWD/test-results:/results" novel-tests
 docker compose -f docker-compose.test.yml run --rm test
 ```
 
-### 6. instabox 云沙箱 CI 运行
-```bash
-# 单箱全量回归 (自动提取并解析 JUnit XML 报告，清理沙箱)
-bash scripts/ci/run-instabox.sh
-
-# 五箱并行分片测试 (5台 instabox 并行，100% 覆盖全部用例，JUnit XML 校验)
-bash scripts/ci/run-parallel.sh
-```
-
-### 7. 安全与网络说明
+### 6. 安全与网络说明
 - Web 服务默认监听 `0.0.0.0:8080`，无登录鉴权机制，**严禁未经反向代理或鉴权直连公网**，仅限本机或可信内网访问。
 - TTS 音色合成默认优先尝试微软 edge-tts；若无网络或未安装，会自动降级为 macOS say 离线发音或标准 PCM WAV 兜底。
-
-```
