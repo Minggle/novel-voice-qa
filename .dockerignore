@@ -1,0 +1,76 @@
+# ==============================================================================
+# Docker Build Context Ignore Rules (.dockerignore)
+# 《十日终焉》小说语音问答与测试容器
+# ==============================================================================
+
+# 1. Version control systems
+.git
+.gitignore
+
+# 2. Agent metadata, backups and workspace scratch
+.agents
+.agents/
+.agents/teamwork/
+.gemini
+.gemini/
+.zcode
+.zcode/
+.backup
+.backup/
+
+# 3. CI/CD workflow definitions
+.github
+.github/
+
+# 4. Python bytecode, caches and testing artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+test-results/
+.coverage
+.coverage*
+*.coverage*
+.coverage/
+htmlcov/
+*.log
+*.bak*
+*.bak
+output*.txt
+
+# 5. Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# 6. Operating system files and temporary files
+.DS_Store
+Thumbs.db
+*.tmp
+
+# 7. Third-party non-runtime configuration & datasets
+shuyuan*.json
+
+# 8. Exclude large raw text books and chunk files (>24MB total)
+#    - books/十日终焉/原文.txt: 9.0 MB raw novel corpus
+#    - books/十日终焉.txt: 6.0 MB unpartitioned text
+#    - books/十日终焉/chunks/: 8.9 MB split slices (42 files)
+books/*.txt
+books/十日终焉/原文.txt
+books/十日终焉/chunks/
+
+# 9. Preserve essential runtime and test artifacts (White-listing)
+#    - books/十日终焉/问答库/档案.jsonl: 999 精读 QA entries (~780KB)
+#    - books/十日终焉/精读总集.md: 46.6万字结构化笔记与深度检索总集 (~456KB)
+#    - books/十日终焉/notes/: 42篇分块笔记 (~472KB)
+#    - books/十日终焉/分析/: 4篇结构化分析 (~72KB)
+!books/十日终焉/问答库/
+!books/十日终焉/问答库/档案.jsonl
+!books/十日终焉/精读总集.md
+!books/十日终焉/notes/
+!books/十日终焉/notes/*
+!books/十日终焉/分析/
+!books/十日终焉/分析/*

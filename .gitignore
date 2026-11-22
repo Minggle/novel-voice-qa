@@ -1,0 +1,39 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# 测试产物
+test-results/
+*.mp3
+*.aiff
+
+# 本地回滚快照(git 本身即版本控制)
+.backup/
+
+# 临时文件与报告
+*.tmp
+nohup.out
+.coverage*
+htmlcov/
+verify_instabox_public.py
+*审核报告*.md
+*复审报告*.md
+
+# 密钥、环境变量与本地运行时配置
+.env
+.env.*
+*.key
+llm_channels.json
+admin_token
+
+# IDE / Agent 临时目录
+.zcode/
+
+# 小说原文明文与切块副本 (仓库内仅保留加密版 原文.txt.enc 及精读笔记)
+books/*.txt
+books/*/原文.txt
+books/*/chunks/

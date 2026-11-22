@@ -1,0 +1,9 @@
+# 本地 docker 测试入口:docker compose -f docker-compose.test.yml run --rm test
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: novel-tests
+    volumes:
+      - ./test-results:/results
