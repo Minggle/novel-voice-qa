@@ -1135,14 +1135,14 @@ class L2DeepRetriever:
             corpus = [tokenize_bigrams(p["full_text"]) for p in parsed]
             self.l2b_bm25 = InvertedBM25(corpus)
 
-    def _load_book_decrypt_fn(self):
+    def _load_book_crypto(self):
         try:
-            from book_crypto import decrypt_text_in_memory
-            return decrypt_text_in_memory
+            import book_crypto
+            return book_crypto
         except ImportError:
             try:
-                from scripts.book_crypto import decrypt_text_in_memory
-                return decrypt_text_in_memory
+                from scripts import book_crypto
+                return book_crypto
             except ImportError:
                 import importlib.util
 
@@ -1152,7 +1152,7 @@ class L2DeepRetriever:
                     raise ImportError(f"无法加载加解密模块: {sibling}")
                 mod = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(mod)
-                return mod.decrypt_text_in_memory
+                return mod
 
     def _init_l2c_lazy(self):
         with self._l2c_lock:
@@ -1171,16 +1171,20 @@ class L2DeepRetriever:
                     print(f"[L2DeepRetriever] 加载原文失败: {e}", file=sys.stderr)
                     return
             elif os.path.isfile(enc_file):
-                book_key = os.environ.get("NOVEL_BOOK_KEY", "").strip()
+                try:
+                    crypto_mod = self._load_book_crypto()
+                    book_key = crypto_mod.resolve_book_key()
+                except Exception as e:
+                    print(f"[L2DeepRetriever] 加载解密配置失败: {e}", file=sys.stderr)
+                    return
                 if not book_key:
                     print(
-                        "[L2DeepRetriever] 检测到加密原文 原文.txt.enc，未设置 NOVEL_BOOK_KEY，跳过 L2C 原文兜底（问答库与精读总集不受影响）",
+                        "[L2DeepRetriever] 检测到加密原文 原文.txt.enc，未配置 NOVEL_BOOK_KEY 或 config.json，跳过 L2C 原文兜底（问答库与精读总集不受影响）",
                         file=sys.stderr,
                     )
                     return
                 try:
-                    decrypt_fn = self._load_book_decrypt_fn()
-                    raw_text = decrypt_fn(enc_file, book_key)
+                    raw_text = crypto_mod.decrypt_text_in_memory(enc_file, book_key)
                 except Exception as e:
                     err_msg = str(e).replace(book_key, "***")
                     print(f"[L2DeepRetriever] 解密加密原文失败: {err_msg}", file=sys.stderr)

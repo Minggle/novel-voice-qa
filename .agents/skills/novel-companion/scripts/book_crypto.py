@@ -9,6 +9,7 @@
 import argparse
 import getpass
 import gzip
+import json
 import os
 import re
 import subprocess
@@ -123,10 +124,51 @@ def decrypt_text_in_memory(enc_path: str, password: str) -> str:
         raise ValueError("解密成功但 UTF-8 解码失败") from exc
 
 
-def _prompt_password(confirm: bool = False) -> str:
+def resolve_book_key(config_path: Optional[str] = None) -> str:
+    """按优先级解析原文密码: 环境变量 NOVEL_BOOK_KEY > NOVEL_STARTUP_CONFIG/config.json。"""
     env_pw = os.environ.get("NOVEL_BOOK_KEY", "").strip()
     if env_pw:
         return env_pw
+
+    candidates = []
+    if config_path:
+        candidates = [os.path.expanduser(config_path)]
+    else:
+        env_cfg = os.environ.get("NOVEL_STARTUP_CONFIG", "").strip()
+        if env_cfg:
+            # 设置了 NOVEL_STARTUP_CONFIG 时仅读取指定路径，便于测试或部署显式隔离
+            candidates = [os.path.expanduser(env_cfg)]
+        else:
+            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            for base_dir in (repo_root, os.getcwd()):
+                p = os.path.join(base_dir, "config.json")
+                if p not in candidates:
+                    candidates.append(p)
+
+    for path in candidates:
+        if not os.path.isfile(path):
+            continue
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                key = str(data.get("book_key") or "").strip()
+                if key:
+                    return key
+        except Exception as exc:
+            print(f"[book_crypto] 读取配置文件失败 ({path}): {exc}", file=sys.stderr)
+    return ""
+
+
+def _prompt_password(confirm: bool = False) -> str:
+    if confirm:
+        env_pw = os.environ.get("NOVEL_BOOK_KEY", "").strip()
+        if env_pw:
+            return env_pw
+    else:
+        resolved = resolve_book_key()
+        if resolved:
+            return resolved
     pw = getpass.getpass("请输入原文加密密码: ").strip()
     if not pw:
         raise ValueError("密码不能为空")

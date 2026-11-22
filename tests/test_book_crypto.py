@@ -1,4 +1,5 @@
 """test_book_crypto.py: 小说原文加密工具与 web.py 内存解密集成测试。"""
+import json
 import os
 import pytest
 
@@ -8,6 +9,7 @@ from scripts.book_crypto import (
     decrypt_text_in_memory,
     encrypt_bytes,
     encrypt_file,
+    resolve_book_key,
 )
 from scripts.web import L2DeepRetriever
 
@@ -62,22 +64,34 @@ def test_l2c_in_memory_decryption(tmp_path, monkeypatch):
     enc_path = book_dir / "原文.txt.enc"
     encrypt_file(str(plain_tmp), str(enc_path), "NovelSecret99!")
 
-    # 1. 未设置 NOVEL_BOOK_KEY 时优雅降级，跳过 L2C
+    # 1. 未设置 NOVEL_BOOK_KEY 且隔离 NOVEL_STARTUP_CONFIG 为不存在文件时优雅降级，跳过 L2C
     monkeypatch.delenv("NOVEL_BOOK_KEY", raising=False)
+    monkeypatch.setenv("NOVEL_STARTUP_CONFIG", str(tmp_path / "no_config.json"))
     r1 = L2DeepRetriever(str(book_dir), summary_sections=[])
     r1._init_l2c_lazy()
     assert r1._l2c_available is False
     assert r1.l2c_chapters == []
     assert not (book_dir / "原文.txt").exists()
 
-    # 2. 设置错误密码时优雅降级且不落盘、不泄露密码
+    # 2. 不设环境变量，仅通过 NOVEL_STARTUP_CONFIG 指向启动配置文件即可自动内存解密且不落盘明文
+    startup_cfg = tmp_path / "startup_config.json"
+    startup_cfg.write_text(json.dumps({"book_key": "NovelSecret99!"}), encoding="utf-8")
+    monkeypatch.setenv("NOVEL_STARTUP_CONFIG", str(startup_cfg))
+    r_cfg = L2DeepRetriever(str(book_dir), summary_sections=[])
+    r_cfg._init_l2c_lazy()
+    assert r_cfg._l2c_available is True
+    assert len(r_cfg.l2c_chapters) == 2
+    assert r_cfg.l2c_chapters[0]["chap_num"] == "第1章"
+    assert not (book_dir / "原文.txt").exists()
+
+    # 3. 设置错误密码时优雅降级且不落盘、不泄露密码
     monkeypatch.setenv("NOVEL_BOOK_KEY", "BadSecret!")
     r2 = L2DeepRetriever(str(book_dir), summary_sections=[])
     r2._init_l2c_lazy()
     assert r2._l2c_available is False
     assert not (book_dir / "原文.txt").exists()
 
-    # 3. 设置正确密码时仅在内存中解密并完成章节索引，磁盘仍无明文 原文.txt
+    # 4. 设置正确密码时仅在内存中解密并完成章节索引，磁盘仍无明文 原文.txt
     monkeypatch.setenv("NOVEL_BOOK_KEY", "NovelSecret99!")
     r3 = L2DeepRetriever(str(book_dir), summary_sections=[])
     r3._init_l2c_lazy()
@@ -87,3 +101,19 @@ def test_l2c_in_memory_decryption(tmp_path, monkeypatch):
     assert r3.l2c_chapters[1]["chap_num"] == "第2章"
     assert "面试房间" in r3.l2c_chapters[0]["content"]
     assert not (book_dir / "原文.txt").exists()
+
+
+def test_repo_startup_config_decrypts_real_enc(monkeypatch):
+    monkeypatch.delenv("NOVEL_BOOK_KEY", raising=False)
+    monkeypatch.delenv("NOVEL_STARTUP_CONFIG", raising=False)
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    cfg_path = os.path.join(root, "config.json")
+    enc_path = os.path.join(root, "books", "十日终焉", "原文.txt.enc")
+    assert os.path.isfile(cfg_path)
+    assert os.path.isfile(enc_path)
+
+    key = resolve_book_key()
+    assert key != ""
+    text = decrypt_text_in_memory(enc_path, key)
+    assert len(text) > 3_000_000
+    assert "齐夏" in text[:5000]
