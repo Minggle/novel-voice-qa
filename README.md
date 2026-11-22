@@ -4,15 +4,23 @@
 
 ## 快速启动
 
+先将仓库克隆到本地并进入项目目录：
+
+```bash
+git clone https://github.com/Minggle/novel-voice-qa.git
+cd novel-voice-qa
+```
+
 ### 方式一：本地 Python 启动
 
-1. 安装依赖（Python 3.9+）：
+1. 创建虚拟环境并安装依赖（Python 3.9+，兼容 Debian / Ubuntu 的系统包保护机制）：
    ```bash
-   pip install -r requirements.txt
+   python3 -m venv .venv
+   .venv/bin/pip install -r requirements.txt
    ```
 2. 启动 Web 服务：
    ```bash
-   python3 scripts/web.py --host 0.0.0.0 --port 8080
+   .venv/bin/python3 scripts/web.py --host 0.0.0.0 --port 8080
    ```
 3. 浏览器打开 `http://localhost:8080` 即可使用。
 
