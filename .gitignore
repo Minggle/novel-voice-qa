@@ -37,3 +37,7 @@ admin_token
 books/*.txt
 books/*/原文.txt
 books/*/chunks/
+books/*/对话记录.md
+
+# 第三方书源与非运行时文件
+shuyuan*.json
